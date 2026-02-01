@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body, html {
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        body.hide-cursor,
+        body.hide-cursor * {
+            cursor: none !important;
+        }
+        
+        #content {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+        }
+        
+        #clickable-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            cursor: pointer;
+        }
+        
+        #blueScreen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #0078d7;
+            z-index: 40;
+        }
+        
+        #blackScreen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #000;
+            z-index: 50;
+        }
+        
+        #finalBlackScreen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #000;
+            z-index: 200;
+        }
+        
+        #errorMessage {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            text-align: left;
+            z-index: 100;
+            padding: 5vh 8vw;
+            width: 90%;
+            max-width: none;
+        }
+        
+        #errorMessage .sad-face {
+            font-size: 10vw;
+            margin-bottom: 2.5vh;
+            line-height: 1;
+        }
+        
+        #errorMessage .error-title {
+            font-size: 3.2vw;
+            margin-bottom: 3vh;
+            font-weight: 300;
+            line-height: 1.2;
+        }
+        
+        #errorMessage .error-text {
+            font-size: 1.8vw;
+            line-height: 1.6;
+            margin-bottom: 1.5vh;
+            font-weight: 300;
+        }
+        
+        #errorMessage .error-code {
+            font-size: 1.3vw;
+            margin-top: 6vh;
+            opacity: 0.9;
+            line-height: 1.8;
+        }
+        
+        #countdown {
+            display: none;
+            position: fixed;
+            top: 3vh;
+            left: 3vw;
+            color: #00ff00;
+            font-size: 1.6vw;
+            font-family: 'Courier New', monospace;
+            font-weight: normal;
+            text-align: left;
+            z-index: 100;
+            line-height: 1.6;
+            white-space: pre;
+        }
+        
+        .terminal-line {
+            opacity: 0;
+            animation: fadeIn 0.3s forwards;
+        }
+        
+        .blink {
+            animation: blink 1s infinite;
+        }
+        
+        .countdown-number {
+            color: #ff0000;
+            font-weight: bold;
+            font-size: 2.5vw;
+        }
+        
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+        
+        @keyframes blink {
+            0%, 50% {
+                opacity: 1;
+            }
+            51%, 100% {
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="content">
+        <img id="clickable-image" src="img/img_1.png" alt="">
+    </div>
+    
+    <div id="blueScreen"></div>
+    <div id="blackScreen"></div>
+    
+    <div id="errorMessage">
+        <div class="sad-face">:(</div>
+        <div class="error-title">Your PC ran into a problem and needs to restart.</div>
+        <div class="error-text">
+            We're just collecting some error info, and then we'll restart for you.
+        </div>
+        <div class="error-text">
+            <span id="percentage">0</span>% complete
+        </div>
+        <div class="error-code">
+            For more information about this issue and possible fixes, visit https://www.windows.com/stopcode<br><br>
+            If you call a support person, give them this info:<br>
+            Stop code: CRITICAL_PROCESS_DIED
+        </div>
+    </div>
+    
+    <div id="countdown"></div>
+    <div id="finalBlackScreen"></div>
+    
+    <script>
+        let hasClicked = false;
+        
+        document.getElementById('clickable-image').addEventListener('click', function() {
+            if (hasClicked) return;
+            hasClicked = true;
+            
+            // Passer en plein écran d'abord
+            const elem = document.documentElement;
+            
+            const goFullscreen = () => {
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen();
+                } else if (elem.webkitRequestFullscreen) {
+                    elem.webkitRequestFullscreen();
+                } else if (elem.msRequestFullscreen) {
+                    elem.msRequestFullscreen();
+                }
+            };
+            
+            goFullscreen();
+            
+            // Attendre un instant avant de lancer le BSOD
+            setTimeout(function() {
+                // Étape 1 : Afficher l'écran bleu avec le message d'erreur et masquer le curseur
+                const blueScreen = document.getElementById('blueScreen');
+                const errorMessage = document.getElementById('errorMessage');
+                const content = document.getElementById('content');
+                
+                content.style.display = 'none';
+                blueScreen.style.display = 'block';
+                errorMessage.style.display = 'block';
+                document.body.classList.add('hide-cursor');
+                
+                // Animation du pourcentage (plus lente)
+                const percentage = document.getElementById('percentage');
+                let percent = 0;
+                const percentInterval = setInterval(function() {
+                    percent += Math.floor(Math.random() * 8) + 2; // Plus lent (2-10 au lieu de 5-20)
+                    if (percent >= 100) {
+                        percent = 100;
+                        clearInterval(percentInterval);
+                    }
+                    percentage.textContent = percent;
+                }, 400); // Intervalle plus long (400ms au lieu de 200ms)
+                
+                // Étape 2 : Après 8 secondes (au lieu de 4), afficher l'écran noir et le compte à rebours
+                setTimeout(function() {
+                    const blackScreen = document.getElementById('blackScreen');
+                    const countdown = document.getElementById('countdown');
+                    
+                    blueScreen.style.display = 'none';
+                    errorMessage.style.display = 'none';
+                    blackScreen.style.display = 'block';
+                    countdown.style.display = 'block';
+                    
+                    // Affichage style terminal
+                    const lines = [
+                        '[KERNEL] Critical system failure detected',
+                        '[SYSTEM] Initiating emergency shutdown protocol...',
+                        '[WARNING] All data will be lost',
+                        '',
+                        'AUTODESTRUCTION DANS: '
+                    ];
+                    
+                    let lineIndex = 0;
+                    const lineInterval = setInterval(function() {
+                        if (lineIndex < lines.length) {
+                            const line = document.createElement('div');
+                            line.className = 'terminal-line';
+                            line.textContent = lines[lineIndex];
+                            countdown.appendChild(line);
+                            lineIndex++;
+                        } else {
+                            clearInterval(lineInterval);
+                            
+                            // Compte à rebours
+                            const countDiv = document.createElement('div');
+                            countDiv.className = 'terminal-line';
+                            const countSpan = document.createElement('span');
+                            countSpan.className = 'countdown-number';
+                            countSpan.textContent = '5'; // Commence à 5 au lieu de 3
+                            countDiv.appendChild(countSpan);
+                            countdown.appendChild(countDiv);
+                            
+                            let count = 5;
+                            const countInterval = setInterval(function() {
+                                count--;
+                                if (count >= 0) {
+                                    countSpan.textContent = count;
+                                } else {
+                                    clearInterval(countInterval);
+                                    countSpan.textContent = '0';
+                                    
+                                    // Message final
+                                    setTimeout(function() {
+                                        const finalLine = document.createElement('div');
+                                        finalLine.className = 'terminal-line blink';
+                                        finalLine.style.color = '#ff0000';
+                                        finalLine.style.marginTop = '10px';
+                                        finalLine.textContent = '>>> SYSTEM DESTROYED <<<';
+                                        countdown.appendChild(finalLine);
+                                        
+                                        // Étape finale : Après 2 secondes (au lieu de 1), écran noir total
+                                        setTimeout(function() {
+                                            const finalBlackScreen = document.getElementById('finalBlackScreen');
+                                            finalBlackScreen.style.display = 'block';
+                                        }, 2000);
+                                    }, 1000);
+                                }
+                            }, 1000);
+                        }
+                    }, 600); // Lignes terminal plus lentes (600ms au lieu de 400ms)
+                }, 8000);
+            }, 100);
+        });
+    </script>
+</body>
+</html>
